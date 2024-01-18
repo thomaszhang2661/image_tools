@@ -84,6 +84,26 @@ def generate_blur_motion(input_image, kernel_min, kernel_max):
     return blurred_image
 
 # 模拟叠加随机噪点
+
+def gaussian_noise(image, degree=None):
+    row, col, ch = image.shape
+    mean = 0
+    sigma = 10
+    # if not degree:
+    #     var = np.random.uniform(0.004, 0.01)
+    # else:
+    #     var = degree
+    # sigma = var ** 0.5 * 25
+    gauss = np.random.normal(mean, sigma, (row, col, ch))
+    gauss = gauss.reshape(row, col, ch)
+    noisy = image + gauss
+    noisy_img = np.clip(noisy,a_min=0,a_max=255)
+    noisy = np.array(noisy, dtype=np.uint8)
+    
+    return noisy
+
+
+
 def generate_noisy(img, noise_level=0.01, max_noise_size=2):
     noisy_img = img.copy()
 
@@ -286,7 +306,7 @@ def check_image_type(image):
 
 if __name__ == '__main__':
     #file_path_name = './tools/annotation/test.jpg'
-    file_path_name = './test.jpg'
+    file_path_name = '/root/autodl-tmp/Code/image_tools-master/test.jpg'
 
 
     file_path = file_path_name[:file_path_name.rfind('/')]
@@ -331,5 +351,11 @@ if __name__ == '__main__':
 
     im6 = generate_photo_shadow(im)
     cv2.imwrite(os.path.join(file_path, file_name_no_ext + '_6.jpg'), im6)
+
+    print("time",time.time()-time_start)
+    time_start = time.time()
+    
+    im7 =gaussian_noise(im)
+    cv2.imwrite(os.path.join(file_path, file_name_no_ext + '_7.jpg'), im7)
 
     print("time",time.time()-time_start)
