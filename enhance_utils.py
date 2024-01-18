@@ -85,20 +85,22 @@ def generate_blur_motion(input_image, kernel_min, kernel_max):
 
 # 模拟叠加随机噪点
 
-def gaussian_noise(image, degree=None):
+def gaussian_noise(image, sigma=20):
     row, col, ch = image.shape
     mean = 0
-    sigma = 10
+    #sigma = 15
     # if not degree:
     #     var = np.random.uniform(0.004, 0.01)
     # else:
     #     var = degree
     # sigma = var ** 0.5 * 25
-    gauss = np.random.normal(mean, sigma, (row, col, ch))
-    gauss = gauss.reshape(row, col, ch)
+    #gauss = np.random.normal(mean, sigma, (row, col, ch))
+    gauss = np.random.normal(mean, sigma, (row, col, 1))
+
+    #gauss = gauss.reshape(row, col, ch)
     noisy = image + gauss
-    noisy_img = np.clip(noisy,a_min=0,a_max=255)
-    noisy = np.array(noisy, dtype=np.uint8)
+    noisy = np.clip(noisy,a_min=0,a_max=255)
+    #noisy = np.array(noisy, dtype=np.uint8)
     
     return noisy
 
@@ -139,18 +141,18 @@ def generate_noisy(img, noise_level=0.01, max_noise_size=2):
 
 
 # 模拟手机拍照叠加光照效果
-def generate_photo_light(input_image, percentile_low=1, percentile_high=99, direction=-1):
+def generate_photo_light(input_image, direction=-1, darkness=0.7):
     #direction: -1 random, 0 up, 1 down, 2 left, 3 right
-    ratio = 4 / 60
+    #ratio = 4 / 60
     #print(input_image.shape)
     if direction == -1:
         direction = np.random.randint(0, 4)
 
     #print(direction)
-    if input_image.shape == 3:
-        input_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
+    #if input_image.shape == 3:
+    #    input_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
 
-    flattened_image = input_image.flatten()
+    #flattened_image = input_image.flatten()
 
     # 计算排序后的百分位数
     # low_value = np.percentile(flattened_image, percentile_low)
@@ -159,7 +161,10 @@ def generate_photo_light(input_image, percentile_low=1, percentile_high=99, dire
     low_value = np.min(input_image) + 20
     high_value = np.max(input_image) - 20
 
-    ratio = (high_value - low_value) * 0.8
+    ratio = min((high_value - low_value) * darkness, 80)
+    #ratio = (high_value - low_value) 
+
+    #ratio = min((high_value - low_value) * 0.8, low_value *1.2)
     ratio = int(ratio) 
     #print("ratio",low_value/255,(high_value - low_value) /255)
     #ratio = ratio * 0.35
@@ -180,7 +185,7 @@ def generate_photo_light(input_image, percentile_low=1, percentile_high=99, dire
                 mask[:, x] = intensity
 
         # Apply the light effect mask to the original image
-        light_effect_image = cv2.subtract(input_image, mask)
+        light_effect_image = cv2.subtract(input_image, mask,dtype=cv2.CV_8U)
     
     elif direction in [0,1]:
         max_intensity = ratio #* input_image.shape[0]
@@ -194,7 +199,7 @@ def generate_photo_light(input_image, percentile_low=1, percentile_high=99, dire
                 mask[x, :] = intensity
 
         # Apply the light effect mask to the original image
-        light_effect_image = cv2.subtract(input_image, mask)
+        light_effect_image = cv2.subtract(input_image, mask,dtype=cv2.CV_8U)
 
     return light_effect_image
 
@@ -242,10 +247,10 @@ def generate_photo_light(input_image, percentile_low=1, percentile_high=99, dire
 #     return shadow_effect_image
 
 
-def generate_photo_shadow(input_image, percentile_low=1, percentile_high=99):
+def generate_photo_shadow(input_image, darkness=0.7):
     # 将图像转换为一维数组
-    if input_image.shape[-1] == 3:
-        input_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
+    #if input_image.shape[-1] == 3:
+    #    input_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2GRAY)
 
     # 计算排序后的百分位数
     low_value = np.min(input_image) + 20
@@ -263,7 +268,7 @@ def generate_photo_shadow(input_image, percentile_low=1, percentile_high=99):
     # 用灰度值填充凸包区域（在原本像素低于阴影像素时进行填充）
     depth = np.random.randint((5 * low_value + 5 * high_value) / 10, (1 * low_value + 9 * high_value) / 10)
 
-    mask_shadow = np.random.uniform(0.3, 0.7) * (high_value - low_value)
+    mask_shadow = darkness * (high_value - low_value)
     mask_shadow = (mask_shadow * np.ones_like(input_image)).astype(np.uint8)
 
     # 剪切原图中的阴影区域
@@ -305,8 +310,8 @@ def check_image_type(image):
 
 
 if __name__ == '__main__':
-    #file_path_name = './tools/annotation/test.jpg'
-    file_path_name = '/root/autodl-tmp/Code/image_tools-master/test.jpg'
+    #file_path_name = './tools/annotation/test3.jpg'
+    file_path_name = '/root/autodl-tmp/Code/image_tools-master/test3.jpg'
 
 
     file_path = file_path_name[:file_path_name.rfind('/')]
@@ -337,13 +342,13 @@ if __name__ == '__main__':
 
     time_start = time.time()
 
-    im4 = generate_photo_light(im,direction=0)
+    im4 = generate_photo_light(im,direction=1,darkness=0.3)
     cv2.imwrite(os.path.join(file_path, file_name_no_ext + '_4.jpg'), im4)
 
     print("time",time.time()-time_start)
     time_start = time.time()
 
-    im5 = generate_photo_light(im,direction=2)
+    im5 = generate_photo_light(im,direction=3,darkness=0.3)
     cv2.imwrite(os.path.join(file_path, file_name_no_ext + '_5.jpg'), im5)
 
     print("time",time.time()-time_start)
